@@ -155,8 +155,15 @@ local render_numbers = ya.sync(function(_, mode)
 			linemodes[#linemodes + 1] = Linemode:new(f):redraw()
 
 			local entity = Entity:new(f)
-			entities[#entities + 1] = ui.Line({ Entity:number(i, #self._folder.files, f, hovered_index), entity:redraw() })
-				:style(entity:style())
+			local style = entity:style():bg("reset")
+			if i == hovered_index then
+				-- Catppuccin Mocha Rosewater, https://github.com/catppuccin/catppuccin/tree/72c0875
+				style = style:fg("#f5e0dc")
+			end
+			entities[#entities + 1] = ui.Line({
+				Entity:number(i, #self._folder.files, f, hovered_index):style(style),
+				entity:redraw(),
+			}):style(entity:style())
 		end
 
 		return {
