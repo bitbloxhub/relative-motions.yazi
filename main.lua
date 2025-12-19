@@ -112,56 +112,58 @@ local render_numbers = ya.sync(function(_, mode)
 		ya.render()
 	end
 
-	Entity.number = function(_, index, total, file, hovered)
-		local idx
-		if mode == SHOW_NUMBERS_RELATIVE then
-			idx = math.abs(hovered - index)
-		elseif mode == SHOW_NUMBERS_ABSOLUTE then
-			idx = file.idx
-		else -- SHOW_NUMBERS_RELATIVE_ABSOLUTE
-			if hovered == index then
-				idx = file.idx
-			else
-				idx = math.abs(hovered - index)
-			end
-		end
-
-		local num_format = "%" .. #tostring(total) .. "d"
-
-		-- emulate vim's hovered offset
-		if hovered == index then
-			return ui.Span(string.format(num_format .. " ", idx))
-		else
-			return ui.Span(string.format(" " .. num_format, idx))
-		end
-	end
-
 	Current.redraw = function(self)
 		local files = self._folder.window
 		if #files == 0 then
 			return self:empty()
 		end
 
-		local hovered_index
-		for i, f in ipairs(files) do
-			if f.is_hovered then
-				hovered_index = i
-				break
+		local left, right = {}, {}
+		for index, file in ipairs(files) do
+			local entity = Entity:new(file)
+
+			local total = #self._folder.files
+			local hovered
+			for i, f in ipairs(self._folder.window) do
+				if f.is_hovered then
+					hovered = i
+					break
+				end
 			end
-		end
 
-		local entities, linemodes = {}, {}
-		for i, f in ipairs(files) do
-			linemodes[#linemodes + 1] = Linemode:new(f):redraw()
+			entity:children_add(function()
+				local idx
+				if mode == SHOW_NUMBERS_RELATIVE then
+					idx = math.abs(hovered - index)
+				elseif mode == SHOW_NUMBERS_ABSOLUTE then
+					idx = file.idx
+				else -- SHOW_NUMBERS_RELATIVE_ABSOLUTE
+					if hovered == index then
+						idx = file.idx
+					else
+						idx = math.abs(hovered - index)
+					end
+				end
 
-			local entity = Entity:new(f)
-			entities[#entities + 1] = ui.Line({ Entity:number(i, #self._folder.files, f, hovered_index), entity:redraw() })
-				:style(entity:style())
+				local num_format = "%" .. #tostring(total) .. "d"
+
+				-- emulate vim's hovered offset
+				if hovered == index then
+					return ui.Span(string.format(num_format .. " ", idx))
+				else
+					return ui.Span(string.format(" " .. num_format, idx))
+				end
+			end, 1001)
+
+			left[#left + 1], right[#right + 1] = entity:redraw(), Linemode:new(file):redraw()
+
+			local max = math.max(0, self._area.w - right[#right]:width())
+			left[#left]:truncate { max = max, ellipsis = entity:ellipsis(max) }
 		end
 
 		return {
-			ui.List(entities):area(self._area),
-			ui.Text(linemodes):area(self._area):align(ui.Align.RIGHT),
+			ui.List(left):area(self._area),
+			ui.Text(right):area(self._area):align(ui.Align.RIGHT),
 		}
 	end
 end)
